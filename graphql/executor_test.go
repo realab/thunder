@@ -488,7 +488,7 @@ func Test_pathError_Reason(t *testing.T) {
 		{
 			name: "non empty list",
 			fields: fields{
-				inner: fmt.Errorf("error"),
+				inner: errors.Errorf("error"),
 				path:  []string{"a", "b", "c"},
 			},
 			want: "c.b.a",

@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/batch"
 	"github.com/samsarahq/go/oops"
 )
@@ -171,10 +171,10 @@ func (db *DB) checkFilterAgainstLimit(filter Filter, limit Filter) error {
 	for k, v := range limit {
 		filterV, ok := filter[k]
 		if !ok {
-			return fmt.Errorf("db requires %s = %v, but query does not filter on %s", k, v, k)
+			return errors.Errorf("db requires %s = %v, but query does not filter on %s", k, v, k)
 		}
 		if filterV != v {
-			return fmt.Errorf("db requires %s = %v, but query specifies %s = %v", k, v, k, filterV)
+			return errors.Errorf("db requires %s = %v, but query specifies %s = %v", k, v, k, filterV)
 		}
 	}
 	return nil
@@ -185,7 +185,7 @@ func (db *DB) checkFilterAgainstLimits(ctx context.Context, query SQLQuery, filt
 	if db.shardLimit != nil {
 		err := db.checkFilterAgainstLimit(filter, db.shardLimit)
 		if err != nil {
-			return fmt.Errorf("check failed for db with shard limit: %s", err.Error())
+			return errors.Errorf("check failed for db with shard limit: %s", err.Error())
 		}
 	}
 
@@ -197,7 +197,7 @@ func (db *DB) checkFilterAgainstLimits(ctx context.Context, query SQLQuery, filt
 				clause, args := query.ToSQL()
 				errWithQuery := &ErrorWithQuery{err, clause, args}
 				if keepGoing := db.dynamicLimit.ShouldContinueOnError(errWithQuery, table.Name); !keepGoing {
-					return fmt.Errorf("check failed for db with dynamic limit: %s", err.Error())
+					return errors.Errorf("check failed for db with dynamic limit: %s", err.Error())
 				}
 			}
 		}
@@ -217,10 +217,10 @@ func (db *DB) checkColumnValuesAgainstLimit(columns []string, values []interface
 			}
 		}
 		if !ok {
-			return fmt.Errorf("db requires %s = %v, but query does not include %s", k, v, k)
+			return errors.Errorf("db requires %s = %v, but query does not include %s", k, v, k)
 		}
 		if valuesV != v {
-			return fmt.Errorf("db requies %s = %v, but query has %s = %v", k, v, k, valuesV)
+			return errors.Errorf("db requies %s = %v, but query has %s = %v", k, v, k, valuesV)
 		}
 	}
 	return nil
@@ -231,7 +231,7 @@ func (db *DB) checkColumnValuesAgainstLimits(ctx context.Context, query SQLQuery
 	if db.shardLimit != nil {
 		err := db.checkColumnValuesAgainstLimit(columns, values, db.shardLimit)
 		if err != nil {
-			return fmt.Errorf("column values check failed for db with shard limit: %s", err.Error())
+			return errors.Errorf("column values check failed for db with shard limit: %s", err.Error())
 		}
 	}
 
@@ -243,7 +243,7 @@ func (db *DB) checkColumnValuesAgainstLimits(ctx context.Context, query SQLQuery
 				clause, args := query.ToSQL()
 				errWithQuery := &ErrorWithQuery{err, clause, args}
 				if keepGoing := db.dynamicLimit.ShouldContinueOnError(errWithQuery, tableName); !keepGoing {
-					return fmt.Errorf("column values check failed for db with dynamic limit: %s", err.Error())
+					return errors.Errorf("column values check failed for db with dynamic limit: %s", err.Error())
 				}
 			}
 		}
@@ -478,7 +478,7 @@ func (db *DB) InsertRows(ctx context.Context, rows interface{}, chunkSize int) e
 	val := reflect.ValueOf(rows)
 	kind := val.Kind()
 	if kind != reflect.Slice && kind != reflect.Array {
-		return fmt.Errorf("expect array/slice got %s", val.Kind().String())
+		return errors.Errorf("expect array/slice got %s", val.Kind().String())
 	}
 
 	rowsData := make([]interface{}, val.Len())

@@ -13,6 +13,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0
 	github.com/ngaut/log v0.0.0-20160810023011-cec23d3e10b0 // indirect
 	github.com/pingcap/check v0.0.0-20200212061837-5e12011dc712 // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rakyll/statik v0.1.5
 	github.com/samsarahq/go v0.0.0-20181026175739-13570df44b46

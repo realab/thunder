@@ -2,7 +2,8 @@ package testfixtures
 
 import (
 	"database/sql/driver"
-	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 type CustomType [16]byte
@@ -32,7 +33,7 @@ func (u *CustomType) Scan(value interface{}) error {
 	case []byte:
 		copy(u[:], value)
 	default:
-		return fmt.Errorf("cannot convert %v (of type %T) to %T", value, value, u)
+		return errors.Errorf("cannot convert %v (of type %T) to %T", value, value, u)
 	}
 	return nil
 }

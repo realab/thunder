@@ -2,10 +2,10 @@ package schemabuilder
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"sort"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 )
 
@@ -19,7 +19,7 @@ func (sb *schemaBuilder) buildStruct(typ reflect.Type) error {
 	}
 
 	if typ == unionType {
-		return fmt.Errorf("schemabuilder.Union can only be used as an embedded anonymous non-pointer struct")
+		return errors.Errorf("schemabuilder.Union can only be used as an embedded anonymous non-pointer struct")
 	}
 
 	if hasUnionMarkerEmbedded(typ) {
@@ -40,10 +40,10 @@ func (sb *schemaBuilder) buildStruct(typ reflect.Type) error {
 	if name == "" {
 		name = typ.Name()
 		if name == "" {
-			return fmt.Errorf("bad type %s: should have a name", typ)
+			return errors.Errorf("bad type %s: should have a name", typ)
 		}
 		if originalType, ok := sb.typeNames[name]; ok {
-			return fmt.Errorf("duplicate name %s: seen both %v and %v", name, originalType, typ)
+			return errors.Errorf("duplicate name %s: seen both %v and %v", name, originalType, typ)
 		}
 	}
 
@@ -59,27 +59,27 @@ func (sb *schemaBuilder) buildStruct(typ reflect.Type) error {
 		field := typ.Field(i)
 		fieldInfo, err := parseGraphQLFieldInfo(field)
 		if err != nil {
-			return fmt.Errorf("bad type %s: %s", typ, fieldInfo.Name)
+			return errors.Errorf("bad type %s: %s", typ, fieldInfo.Name)
 		}
 		if fieldInfo.Skipped {
 			continue
 		}
 
 		if _, ok := object.Fields[fieldInfo.Name]; ok {
-			return fmt.Errorf("bad type %s: two fields named %s", typ, fieldInfo.Name)
+			return errors.Errorf("bad type %s: two fields named %s", typ, fieldInfo.Name)
 		}
 
 		built, err := sb.buildField(field)
 		if err != nil {
-			return fmt.Errorf("bad field %s on type %s: %s", fieldInfo.Name, typ, err)
+			return errors.Errorf("bad field %s on type %s: %s", fieldInfo.Name, typ, err)
 		}
 		object.Fields[fieldInfo.Name] = built
 		if fieldInfo.KeyField {
 			if object.KeyField != nil {
-				return fmt.Errorf("bad type %s: multiple key fields", typ)
+				return errors.Errorf("bad type %s: multiple key fields", typ)
 			}
 			if !isScalarType(built.Type) {
-				return fmt.Errorf("bad type %s: key type must be scalar, got %T", typ, built.Type)
+				return errors.Errorf("bad type %s: key type must be scalar, got %T", typ, built.Type)
 			}
 			object.KeyField = built
 		}
@@ -130,7 +130,7 @@ func (sb *schemaBuilder) buildStruct(typ reflect.Type) error {
 
 		built, err := sb.buildFunction(typ, method)
 		if err != nil {
-			return fmt.Errorf("bad method %s on type %s: %s", name, typ, err)
+			return errors.Errorf("bad method %s on type %s: %s", name, typ, err)
 		}
 		object.Fields[name] = built
 	}
@@ -138,11 +138,11 @@ func (sb *schemaBuilder) buildStruct(typ reflect.Type) error {
 	if objectKey != "" {
 		keyPtr, ok := object.Fields[objectKey]
 		if !ok {
-			return fmt.Errorf("key field doesn't exist on object")
+			return errors.Errorf("key field doesn't exist on object")
 		}
 
 		if !isScalarType(keyPtr.Type) {
-			return fmt.Errorf("bad type %s: key type must be scalar, got %s", typ, keyPtr.Type.String())
+			return errors.Errorf("bad type %s: key type must be scalar, got %s", typ, keyPtr.Type.String())
 		}
 		object.KeyField = keyPtr
 	}
@@ -171,10 +171,10 @@ func (sb *schemaBuilder) buildUnionStruct(typ reflect.Type) error {
 	if name == "" {
 		name = typ.Name()
 		if name == "" {
-			return fmt.Errorf("bad type %s: should have a name", typ)
+			return errors.Errorf("bad type %s: should have a name", typ)
 		}
 		if originalType, ok := sb.typeNames[name]; ok {
-			return fmt.Errorf("duplicate name %s: seen both %v and %v", name, originalType, typ)
+			return errors.Errorf("duplicate name %s: seen both %v and %v", name, originalType, typ)
 		}
 	}
 
@@ -193,7 +193,7 @@ func (sb *schemaBuilder) buildUnionStruct(typ reflect.Type) error {
 		}
 
 		if !field.Anonymous {
-			return fmt.Errorf("bad type %s: union type member types must be anonymous", name)
+			return errors.Errorf("bad type %s: union type member types must be anonymous", name)
 		}
 
 		typ, err := sb.getType(field.Type)
@@ -203,11 +203,11 @@ func (sb *schemaBuilder) buildUnionStruct(typ reflect.Type) error {
 
 		obj, ok := typ.(*graphql.Object)
 		if !ok {
-			return fmt.Errorf("bad type %s: union type member must be a pointer to a struct, received %s", name, typ.String())
+			return errors.Errorf("bad type %s: union type member must be a pointer to a struct, received %s", name, typ.String())
 		}
 
 		if union.Types[obj.Name] != nil {
-			return fmt.Errorf("bad type %s: union type member may only appear once", name)
+			return errors.Errorf("bad type %s: union type member may only appear once", name)
 		}
 
 		union.Types[obj.Name] = obj

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -12,6 +11,7 @@ import (
 	"sync"
 	"unicode"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/internal/fields"
 )
 
@@ -74,7 +74,7 @@ func parseQueryRow(table *Table, scanner *sql.Rows) (interface{}, error) {
 
 	if err := scanner.Scan(scanners...); err != nil {
 		columns, _ := scanner.Columns()
-		return nil, fmt.Errorf("sqlgen: parsing error for `%s`.(%v): %v", table.Name, columns, err)
+		return nil, errors.Errorf("sqlgen: parsing error for `%s`.(%v): %v", table.Name, columns, err)
 	}
 
 	return ptr.Interface(), nil
@@ -142,7 +142,7 @@ type Table struct {
 
 func (s *Schema) buildDescriptor(table string, primaryKeyType PrimaryKeyType, typ reflect.Type) (*Table, error) {
 	if typ.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("bad type %s: not a struct", typ)
+		return nil, errors.Errorf("bad type %s: not a struct", typ)
 	}
 
 	var columns []*Column
@@ -154,7 +154,7 @@ func (s *Schema) buildDescriptor(table string, primaryKeyType PrimaryKeyType, ty
 			continue
 		}
 		if field.Anonymous {
-			return nil, fmt.Errorf("bad type %s: anonymous fields not supported", typ)
+			return nil, errors.Errorf("bad type %s: anonymous fields not supported", typ)
 		}
 
 		tags := strings.Split(field.Tag.Get("sql"), ",")
@@ -180,21 +180,21 @@ func (s *Schema) buildDescriptor(table string, primaryKeyType PrimaryKeyType, ty
 					// Do nothing, fields will handle these.
 				case "implicitnull":
 					if field.Type.Kind() == reflect.Ptr {
-						return nil, fmt.Errorf("bad type %s: column %s cannot use `implicitnull` with pointer type", typ, column)
+						return nil, errors.Errorf("bad type %s: column %s cannot use `implicitnull` with pointer type", typ, column)
 					}
 				default:
-					return nil, fmt.Errorf("bad type %s: column %s has unexpected tag %s", typ, column, tag)
+					return nil, errors.Errorf("bad type %s: column %s has unexpected tag %s", typ, column, tag)
 				}
 			}
 		}
 
 		if _, ok := columnsByName[column]; ok {
-			return nil, fmt.Errorf("bad type %s: duplicate column %s", typ, column)
+			return nil, errors.Errorf("bad type %s: duplicate column %s", typ, column)
 		}
 
 		d := fields.New(field.Type, tags[1:])
 		if err := d.ValidateSQLType(); err != nil {
-			return nil, fmt.Errorf("bad type %s: %s %v", typ, column, err)
+			return nil, errors.Errorf("bad type %s: %s %v", typ, column, err)
 		}
 
 		descriptor := &Column{
@@ -219,7 +219,7 @@ func (s *Schema) buildDescriptor(table string, primaryKeyType PrimaryKeyType, ty
 		}
 	}
 	if !hasPrimary {
-		return nil, fmt.Errorf("bad type %s: no primary key specified", typ)
+		return nil, errors.Errorf("bad type %s: no primary key specified", typ)
 	}
 
 	scanners := &sync.Pool{
@@ -254,7 +254,7 @@ func (table *Table) unbuildStruct(strct interface{}) ([]interface{}, error) {
 		var err error
 		values[i], err = column.Descriptor.Valuer(val).Value()
 		if err != nil {
-			return nil, fmt.Errorf("sqlgen: serialization error for `%s`.`%s`: %v", table.Name, column.Name, err)
+			return nil, errors.Errorf("sqlgen: serialization error for `%s`.`%s`: %v", table.Name, column.Name, err)
 		}
 	}
 
@@ -275,11 +275,11 @@ func NewSchema() *Schema {
 
 func (s *Schema) RegisterType(table string, primaryKeyType PrimaryKeyType, value interface{}) error {
 	if _, ok := s.ByName[table]; ok {
-		return fmt.Errorf("table %s registered twice", table)
+		return errors.Errorf("table %s registered twice", table)
 	}
 	typ := reflect.TypeOf(value)
 	if _, ok := s.ByType[typ]; ok {
-		return fmt.Errorf("type %s registered twice", typ)
+		return errors.Errorf("type %s registered twice", typ)
 	}
 
 	descriptor, err := s.buildDescriptor(table, primaryKeyType, typ)
@@ -301,7 +301,7 @@ func (s *Schema) MustRegisterType(table string, primaryKeyType PrimaryKeyType, v
 func (s *Schema) get(typ reflect.Type) (*Table, error) {
 	table, ok := s.ByType[typ]
 	if !ok {
-		return nil, fmt.Errorf("Type %s not in schema. Make sure to add new schema to models/sqlgen.go.", typ)
+		return nil, errors.Errorf("Type %s not in schema. Make sure to add new schema to models/sqlgen.go.", typ)
 	}
 	return table, nil
 }
@@ -347,12 +347,12 @@ func makeWhere(table *Table, filter Filter) (*SimpleWhere, error) {
 	for name, value := range filter {
 		column, ok := table.ColumnsByName[name]
 		if !ok {
-			return nil, fmt.Errorf("unknown column %s", name)
+			return nil, errors.Errorf("unknown column %s", name)
 		}
 
 		v, err := column.Descriptor.Valuer(reflect.ValueOf(value)).Value()
 		if err != nil {
-			return nil, fmt.Errorf("sqlgen: filter error for `%s`.`%s`: %v", table.Name, column.Name, err)
+			return nil, errors.Errorf("sqlgen: filter error for `%s`.`%s`: %v", table.Name, column.Name, err)
 		}
 		l = append(l, whereElem{column: column, value: v})
 	}
@@ -795,7 +795,7 @@ func (s *Schema) MakeTester(table string, filter Filter) (Tester, error) {
 	for name, value := range filter {
 		column, ok := t.ColumnsByName[name]
 		if !ok {
-			return nil, fmt.Errorf("unknown column %s", name)
+			return nil, errors.Errorf("unknown column %s", name)
 		}
 		columns = append(columns, column)
 		values = append(values, value)
@@ -858,7 +858,7 @@ func driverValuesEqual(dv1, dv2 driver.Value) bool {
 func (s *Schema) UnbuildStruct(tableName string, strct interface{}) ([]interface{}, error) {
 	table, ok := s.ByName[tableName]
 	if !ok {
-		return nil, fmt.Errorf("unknown table: %s", tableName)
+		return nil, errors.Errorf("unknown table: %s", tableName)
 	}
 	return table.unbuildStruct(strct)
 }
@@ -867,14 +867,14 @@ func (s *Schema) UnbuildStruct(tableName string, strct interface{}) ([]interface
 func (s *Schema) BuildStruct(tableName string, row []driver.Value) (interface{}, error) {
 	table, ok := s.ByName[tableName]
 	if !ok {
-		return nil, fmt.Errorf("unknown table: %s", tableName)
+		return nil, errors.Errorf("unknown table: %s", tableName)
 	}
 
 	ptr := reflect.New(table.Type)
 	elem := ptr.Elem()
 
 	if len(row) != len(table.Columns) {
-		return nil, fmt.Errorf("row has %d columns but table %s struct %s has %d columns",
+		return nil, errors.Errorf("row has %d columns but table %s struct %s has %d columns",
 			len(row), table.Name, table.Type.String(), len(table.Columns))
 	}
 
@@ -889,7 +889,7 @@ func (s *Schema) BuildStruct(tableName string, row []driver.Value) (interface{},
 		scanner := scanners[i].(*fields.Scanner)
 		scanner.Target(field)
 		if err := scanner.Scan(row[i]); err != nil {
-			return nil, fmt.Errorf("`%s`.`%s` error: %v", table.Name, table.Columns[i].Name, err)
+			return nil, errors.Errorf("`%s`.`%s` error: %v", table.Name, table.Columns[i].Name, err)
 		}
 	}
 

@@ -119,7 +119,7 @@ func (c *SuffixString) Scan(value interface{}) error {
 	case string:
 		*c = SuffixString(value + "-FOO")
 	default:
-		return fmt.Errorf("cannot convert %v to string", value)
+		return errors.Errorf("cannot convert %v to string", value)
 	}
 	return nil
 }

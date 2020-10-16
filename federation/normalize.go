@@ -1,10 +1,10 @@
 package federation
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 	"github.com/samsarahq/go/oops"
 )
@@ -45,7 +45,7 @@ func CollectTypes(typ graphql.Type, types map[graphql.Type]string) error {
 		types[typ] = typ.Type
 
 	default:
-		return fmt.Errorf("bad typ %v", typ)
+		return errors.Errorf("bad typ %v", typ)
 	}
 
 	return nil
@@ -103,7 +103,7 @@ func (f *flattener) applies(obj *graphql.Object, fragment *graphql.Fragment) (bo
 		_, ok := typ.Types[obj.Name]
 		return ok, nil
 	default:
-		return false, fmt.Errorf("unknown fragment type %s", fragment.On)
+		return false, errors.Errorf("unknown fragment type %s", fragment.On)
 	}
 }
 
@@ -158,17 +158,17 @@ func mergeSameAlias(selections []*graphql.Selection) ([]*graphql.Selection, erro
 		}
 
 		if selection.Name != last.Name {
-			return nil, fmt.Errorf("two selections with same alias (%s) have different names (%s and %s)",
+			return nil, errors.Errorf("two selections with same alias (%s) have different names (%s and %s)",
 				selection.Alias, selection.Name, last.Name)
 		}
 		if !reflect.DeepEqual(selection.UnparsedArgs, last.UnparsedArgs) {
-			return nil, fmt.Errorf("two selections with same alias (%s) have different arguments (%v and %v)",
+			return nil, errors.Errorf("two selections with same alias (%s) have different arguments (%v and %v)",
 				selection.Alias, selection.UnparsedArgs, last.UnparsedArgs)
 		}
 
 		if selection.SelectionSet != nil {
 			if last.SelectionSet == nil {
-				return nil, fmt.Errorf("one selection with alias %s has subselections and one does not",
+				return nil, errors.Errorf("one selection with alias %s has subselections and one does not",
 					selection.Alias)
 			}
 			last.SelectionSet.Selections = append(last.SelectionSet.Selections,
@@ -192,13 +192,13 @@ func (f *flattener) flatten(selectionSet *graphql.SelectionSet, typ graphql.Type
 	case *graphql.Enum, *graphql.Scalar:
 		// For enum and scalar types, check that there is no selection set.
 		if selectionSet != nil {
-			return nil, fmt.Errorf("unexpected selection on enum or scalar")
+			return nil, errors.Errorf("unexpected selection on enum or scalar")
 		}
 		return selectionSet, nil
 
 	case *graphql.Object:
 		if selectionSet == nil {
-			return nil, fmt.Errorf("object %s needs selection set", typ.Name)
+			return nil, errors.Errorf("object %s needs selection set", typ.Name)
 		}
 
 		// To normalize an object query, first flatten all fragments and combine
@@ -227,7 +227,7 @@ func (f *flattener) flatten(selectionSet *graphql.SelectionSet, typ graphql.Type
 			} else {
 				field, ok := typ.Fields[selection.Name]
 				if !ok {
-					return nil, fmt.Errorf("unknown field %s on typ %s", selection.Name, typ.Name)
+					return nil, errors.Errorf("unknown field %s on typ %s", selection.Name, typ.Name)
 				}
 				fieldTyp = field.Type
 			}
@@ -276,7 +276,7 @@ func (f *flattener) flatten(selectionSet *graphql.SelectionSet, typ graphql.Type
 		}, nil
 
 	default:
-		return nil, fmt.Errorf("bad typ %v", typ)
+		return nil, errors.Errorf("bad typ %v", typ)
 	}
 }
 

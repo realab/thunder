@@ -5,12 +5,12 @@ import (
 	"database/sql/driver"
 	"encoding"
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/gogo/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // Valuer fulfills the sql/driver.Valuer interface which deserializes our
@@ -249,7 +249,7 @@ func (s *Scanner) Scan(src interface{}) error {
 	case s.Tags.Contains("binary"):
 		b, ok := src.([]byte)
 		if !ok {
-			return fmt.Errorf("binary column must be of type []byte, got %T", src)
+			return errors.Errorf("binary column must be of type []byte, got %T", src)
 		}
 		if iface, ok := i.(unmarshaler); ok {
 			return iface.Unmarshal(b)
@@ -266,7 +266,7 @@ func (s *Scanner) Scan(src interface{}) error {
 		}
 		b, isByte := src.([]byte)
 		if !isByte {
-			return fmt.Errorf("string/text column must be of type []byte or string, got %T", src)
+			return errors.Errorf("string/text column must be of type []byte or string, got %T", src)
 		}
 		if iface, ok := i.(encoding.TextUnmarshaler); isByte && ok {
 			return iface.UnmarshalText(b)
@@ -277,7 +277,7 @@ func (s *Scanner) Scan(src interface{}) error {
 		}
 		b, isByte := src.([]byte)
 		if !isByte {
-			return fmt.Errorf("json column must be of type string or []byte, got %T", src)
+			return errors.Errorf("json column must be of type string or []byte, got %T", src)
 		}
 		// Implicitly will check for json.Unmarshaler.
 		return json.Unmarshal(b, i)
@@ -319,7 +319,7 @@ func (s *Scanner) Scan(src interface{}) error {
 		return nil
 	}
 
-	return fmt.Errorf("couldn't coerce type %T into %T", src, i)
+	return errors.Errorf("couldn't coerce type %T into %T", src, i)
 }
 
 var _ sql.Scanner = &Scanner{}

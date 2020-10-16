@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding"
-	"fmt"
 	"reflect"
 	"strings"
 	"unicode"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 )
 
@@ -83,7 +83,7 @@ func parseGraphQLFieldInfo(field reflect.StructField) (*graphQLFieldInfo, error)
 			} else if tag == "optional" && !optional {
 				optional = true
 			} else {
-				return nil, fmt.Errorf("field %s has unexpected tag %s", name, tag)
+				return nil, errors.Errorf("field %s has unexpected tag %s", name, tag)
 			}
 		}
 	}

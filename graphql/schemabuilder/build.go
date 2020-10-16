@@ -2,10 +2,10 @@ package schemabuilder
 
 import (
 	"encoding"
-	"fmt"
 	"reflect"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 	"github.com/realab/thunder/internal"
 )
@@ -88,7 +88,7 @@ func (sb *schemaBuilder) getType(nodeType reflect.Type) (graphql.Type, error) {
 		return &graphql.NonNull{Type: &graphql.List{Type: elementType}}, nil
 
 	default:
-		return nil, fmt.Errorf("bad type %s: should be a scalar, slice, or struct type", nodeType)
+		return nil, errors.Errorf("bad type %s: should be a scalar, slice, or struct type", nodeType)
 	}
 }
 
@@ -105,7 +105,7 @@ func (sb *schemaBuilder) getTextMarshalerType(typ reflect.Type) (graphql.Type, e
 			}
 			marshalVal, ok := i.Interface().(encoding.TextMarshaler)
 			if !ok {
-				return nil, fmt.Errorf("cannot convert field to text")
+				return nil, errors.Errorf("cannot convert field to text")
 			}
 			val, err := marshalVal.MarshalText()
 			if err != nil {

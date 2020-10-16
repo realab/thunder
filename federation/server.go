@@ -3,9 +3,9 @@ package federation
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 	"github.com/realab/thunder/graphql/introspection"
 	"github.com/realab/thunder/reactive"
@@ -65,7 +65,7 @@ func ExecuteRequest(ctx context.Context, req *thunderpb.ExecuteRequest, gqlSchem
 	case "mutation":
 		schema = gqlSchema.Mutation
 	default:
-		return nil, fmt.Errorf("unknown kind %s", query.Kind)
+		return nil, errors.Errorf("unknown kind %s", query.Kind)
 	}
 
 	if err := graphql.PrepareQuery(ctx, schema, query.SelectionSet); err != nil {
@@ -86,7 +86,7 @@ func ExecuteRequest(ctx context.Context, req *thunderpb.ExecuteRequest, gqlSchem
 
 		res, err := localExecutor.Execute(ctx, schema, nil, query)
 		if err != nil {
-			return nil, fmt.Errorf("executing query: %v", err)
+			return nil, errors.Errorf("executing query: %v", err)
 		}
 
 		bytes, err := json.Marshal(res)

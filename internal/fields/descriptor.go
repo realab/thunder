@@ -2,8 +2,9 @@ package fields
 
 import (
 	"database/sql/driver"
-	"fmt"
 	"reflect"
+
+	"github.com/pkg/errors"
 )
 
 // Descriptor is a cache object that holds onto relevant information about our struct field and
@@ -58,7 +59,7 @@ func (d *Descriptor) ValidateSQLType() error {
 		return err
 	}
 	if ok := driver.IsValue(sqlVal); !ok {
-		return fmt.Errorf("%T is not a valid SQL type", sqlVal)
+		return errors.Errorf("%T is not a valid SQL type", sqlVal)
 	}
 
 	// We need to hold onto this pointer-pointer in order to make the value addressable.
