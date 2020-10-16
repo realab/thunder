@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 )
 
@@ -219,11 +220,11 @@ func (s *Schema) Build() (*graphql.Schema, error) {
 	for _, object := range s.objects {
 		typ := reflect.TypeOf(object.Type)
 		if typ.Kind() != reflect.Struct {
-			return nil, fmt.Errorf("object.Type should be a struct, not %s", typ.String())
+			return nil, errors.Errorf("object.Type should be a struct, not %s", typ.String())
 		}
 
 		if _, ok := sb.objects[typ]; ok {
-			return nil, fmt.Errorf("duplicate object for %s", typ.String())
+			return nil, errors.Errorf("duplicate object for %s", typ.String())
 		}
 
 		sb.objects[typ] = object

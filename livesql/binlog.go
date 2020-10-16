@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -13,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/internal/fields"
 	"github.com/realab/thunder/logger"
 	"github.com/realab/thunder/sqlgen"
@@ -50,11 +50,11 @@ func checkVariable(conn *sql.DB, variable, expected string) error {
 	var value string
 	var ignored interface{}
 	if err := row.Scan(&ignored, &value); err != nil {
-		return fmt.Errorf("error reading MySQL variable %s: %s", variable, err)
+		return errors.Errorf("error reading MySQL variable %s: %s", variable, err)
 	}
 
 	if !strings.EqualFold(value, expected) {
-		return fmt.Errorf("expected MySQL variable %s to be %s, but got %s", variable, expected, value)
+		return errors.Errorf("expected MySQL variable %s to be %s, but got %s", variable, expected, value)
 	}
 
 	return nil
@@ -66,7 +66,7 @@ func getPosition(conn *sql.DB) (mysql.Position, error) {
 	var position mysql.Position
 	var ignored interface{}
 	if err := row.Scan(&position.Name, &position.Pos, &ignored, &ignored, &ignored); err != nil {
-		return mysql.Position{}, fmt.Errorf("error retrieving MySQL binlog position: %s", err)
+		return mysql.Position{}, errors.Errorf("error retrieving MySQL binlog position: %s", err)
 	}
 	return position, nil
 }
@@ -210,7 +210,7 @@ func parseBinlogRow(table *sqlgen.Table, binlogRow []interface{}, columnMap *col
 	elem := ptr.Elem()
 
 	if len(binlogRow) != columnMap.expectedColumns {
-		return nil, fmt.Errorf("binlog for %s has %d columns, expected %d",
+		return nil, errors.Errorf("binlog for %s has %d columns, expected %d",
 			table.Name, len(binlogRow), columnMap.expectedColumns)
 	}
 
@@ -228,7 +228,7 @@ func parseBinlogRow(table *sqlgen.Table, binlogRow []interface{}, columnMap *col
 		scanner := scanners[i].(*fields.Scanner)
 		scanner.Target(field)
 		if err := scanner.Scan(binlogRow[j]); err != nil {
-			return nil, fmt.Errorf("binlog: `%s`.`%s` error: %v", table.Name, table.Columns[i].Name, err)
+			return nil, errors.Errorf("binlog: `%s`.`%s` error: %v", table.Name, table.Columns[i].Name, err)
 		}
 	}
 
@@ -338,7 +338,7 @@ func (b *Binlog) parseBinlogRowsEvent(event *replication.BinlogEvent) (*update, 
 		}
 
 	default:
-		return nil, fmt.Errorf("unknown event type %s", event.Header.EventType.String())
+		return nil, errors.Errorf("unknown event type %s", event.Header.EventType.String())
 	}
 
 	return update, nil

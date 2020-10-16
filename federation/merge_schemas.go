@@ -1,9 +1,10 @@
 package federation
 
 import (
-	"errors"
 	"fmt"
 	"sort"
+
+	"github.com/pkg/errors"
 )
 
 // MergeMode controls how to combine two different schemas. Union is used for
@@ -140,7 +141,7 @@ func mergeTypeRefs(a, b *introspectionTypeRef, isInput bool) (*introspectionType
 
 	// Otherwise, recursively assert that the input types are compatible.
 	if a.Kind != b.Kind {
-		return nil, fmt.Errorf("kinds %s and %s differ", a.Name, b.Kind)
+		return nil, errors.Errorf("kinds %s and %s differ", a.Name, b.Kind)
 	}
 	switch a.Kind {
 	// Basic types must be identical.
@@ -189,7 +190,7 @@ func mergeInputFields(a, b []introspectionInputField, mode MergeMode) ([]introsp
 		p := types[name]
 		if len(p) == 1 {
 			if p[0].Type.Kind == "NON_NULL" {
-				return nil, fmt.Errorf("new field %s is non-null: %v", name, p[0].Type)
+				return nil, errors.Errorf("new field %s is non-null: %v", name, p[0].Type)
 			}
 			if mode == Union {
 				merged = append(merged, p[0])
@@ -198,7 +199,7 @@ func mergeInputFields(a, b []introspectionInputField, mode MergeMode) ([]introsp
 		}
 		m, err := mergeTypeRefs(p[0].Type, p[1].Type, true)
 		if err != nil {
-			return nil, fmt.Errorf("field %s has incompatible types %s and %s: %v", name, p[0].Type, p[1].Type, err)
+			return nil, errors.Errorf("field %s has incompatible types %s and %s: %v", name, p[0].Type, p[1].Type, err)
 		}
 		merged = append(merged, introspectionInputField{
 			Name: name,
@@ -235,11 +236,11 @@ func mergeFields(a, b []introspectionField, mode MergeMode) ([]introspectionFiel
 
 		typ, err := mergeTypeRefs(p[0].Type, p[1].Type, false)
 		if err != nil {
-			return nil, fmt.Errorf("field %s has incompatible types %v and %v: %v", name, p[0], p[1], err)
+			return nil, errors.Errorf("field %s has incompatible types %v and %v: %v", name, p[0], p[1], err)
 		}
 		args, err := mergeInputFields(p[0].Args, p[1].Args, mode)
 		if err != nil {
-			return nil, fmt.Errorf("field %s has incompatible arguments: %v", name, err)
+			return nil, errors.Errorf("field %s has incompatible arguments: %v", name, err)
 		}
 
 		merged = append(merged, introspectionField{
@@ -314,7 +315,7 @@ func mergeEnumValues(a, b []introspectionEnumValue, mode MergeMode) ([]introspec
 
 func mergeTypes(a, b introspectionType, mode MergeMode) (*introspectionType, error) {
 	if a.Kind != b.Kind {
-		return nil, fmt.Errorf("conflicting kinds %s and %s", a.Kind, b.Kind)
+		return nil, errors.Errorf("conflicting kinds %s and %s", a.Kind, b.Kind)
 	}
 
 	merged := introspectionType{
@@ -330,35 +331,35 @@ func mergeTypes(a, b introspectionType, mode MergeMode) (*introspectionType, err
 	case "INPUT_OBJECT":
 		inputFields, err := mergeInputFields(a.InputFields, b.InputFields, mode)
 		if err != nil {
-			return nil, fmt.Errorf("merging input fields: %v", err)
+			return nil, errors.Errorf("merging input fields: %v", err)
 		}
 		merged.InputFields = inputFields
 
 	case "OBJECT":
 		fields, err := mergeFields(a.Fields, b.Fields, mode)
 		if err != nil {
-			return nil, fmt.Errorf("merging fields: %v", err)
+			return nil, errors.Errorf("merging fields: %v", err)
 		}
 		merged.Fields = fields
 
 	case "UNION":
 		possibleTypes, err := mergePossibleTypes(a.PossibleTypes, b.PossibleTypes, mode)
 		if err != nil {
-			return nil, fmt.Errorf("merging possible types: %v", err)
+			return nil, errors.Errorf("merging possible types: %v", err)
 		}
 		merged.PossibleTypes = possibleTypes
 
 	case "ENUM":
 		enumValues, err := mergeEnumValues(a.EnumValues, b.EnumValues, mode)
 		if err != nil {
-			return nil, fmt.Errorf("merging enum values: %v", err)
+			return nil, errors.Errorf("merging enum values: %v", err)
 		}
 		merged.EnumValues = enumValues
 
 	case "SCALAR":
 
 	default:
-		return nil, fmt.Errorf("unknown kind %s", a.Kind)
+		return nil, errors.Errorf("unknown kind %s", a.Kind)
 	}
 
 	return &merged, nil
@@ -390,7 +391,7 @@ func mergeSchemas(a, b *IntrospectionQueryResult, mode MergeMode) (*Introspectio
 		}
 		m, err := mergeTypes(p[0], p[1], mode)
 		if err != nil {
-			return nil, fmt.Errorf("can't merge type %s: %v", name, err)
+			return nil, errors.Errorf("can't merge type %s: %v", name, err)
 		}
 		merged = append(merged, *m)
 	}

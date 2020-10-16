@@ -3,9 +3,10 @@ package graphql
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"reflect"
 	"runtime"
+
+	"github.com/pkg/errors"
 )
 
 type pathError struct {
@@ -209,7 +210,7 @@ func SafeExecuteBatchResolver(ctx context.Context, field *Field, sources []inter
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			results, err = nil, fmt.Errorf("graphql: panic: %v\n%s", panicErr, buf)
+			results, err = nil, errors.Errorf("graphql: panic: %v\n%s", panicErr, buf)
 		}
 	}()
 	return field.BatchResolver(ctx, sources, args, selectionSet)
@@ -221,7 +222,7 @@ func SafeExecuteResolver(ctx context.Context, field *Field, source, args interfa
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			result, err = nil, fmt.Errorf("graphql: panic: %v\n%s", panicErr, buf)
+			result, err = nil, errors.Errorf("graphql: panic: %v\n%s", panicErr, buf)
 		}
 	}()
 	return field.Resolve(ctx, source, args, selectionSet)

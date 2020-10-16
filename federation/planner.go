@@ -1,10 +1,10 @@
 package federation
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 	"github.com/samsarahq/go/oops"
 )
@@ -205,7 +205,7 @@ func (e *Planner) planObject(typ *graphql.Object, selectionSet *graphql.Selectio
 		// Check that the selection name is an expected field
 		field, ok := typ.Fields[selection.Name]
 		if !ok {
-			return nil, fmt.Errorf("typ %s has no field %s", typ.Name, selection.Name)
+			return nil, errors.Errorf("typ %s has no field %s", typ.Name, selection.Name)
 		}
 		fieldInfo := e.schema.Fields[field]
 
@@ -233,7 +233,7 @@ func (e *Planner) planObject(typ *graphql.Object, selectionSet *graphql.Selectio
 			var err error
 			childPlan, err = e.plan(field.Type, selection.SelectionSet, service)
 			if err != nil {
-				return nil, fmt.Errorf("planning for %s: %v", selection.Name, err)
+				return nil, errors.Errorf("planning for %s: %v", selection.Name, err)
 			}
 		}
 
@@ -276,7 +276,7 @@ func (e *Planner) planObject(typ *graphql.Object, selectionSet *graphql.Selectio
 
 		subPlan, err := e.plan(typ, &graphql.SelectionSet{Selections: selections}, other)
 		if err != nil {
-			return nil, fmt.Errorf("planning for %s: %v", other, err)
+			return nil, errors.Errorf("planning for %s: %v", other, err)
 		}
 
 		p.After = append(p.After, subPlan)
@@ -290,7 +290,7 @@ func (e *Planner) planObject(typ *graphql.Object, selectionSet *graphql.Selectio
 			if selection.Name == federationField && selection.Alias == federationField {
 				hasKey = true
 			} else if selection.Name == federationField || selection.Alias == federationField {
-				return nil, fmt.Errorf("Both the selection name and alias have to be _federation")
+				return nil, errors.Errorf("Both the selection name and alias have to be _federation")
 			}
 		}
 		if !hasKey {
@@ -353,7 +353,7 @@ func (e *Planner) planUnion(typ *graphql.Union, selectionSet *graphql.SelectionS
 
 	for _, selection := range selectionSet.Selections {
 		if selection.Name != "__typename" {
-			return nil, fmt.Errorf("unexpected selection %s on union", selection.Name)
+			return nil, errors.Errorf("unexpected selection %s on union", selection.Name)
 		}
 		plan.SelectionSet.Selections = append(plan.SelectionSet.Selections, selection)
 	}
@@ -364,14 +364,14 @@ func (e *Planner) planUnion(typ *graphql.Union, selectionSet *graphql.SelectionS
 	for _, fragment := range selectionSet.Fragments {
 		// Enforce flattened schema.
 		if _, ok := seenFragments[fragment.On]; ok {
-			return nil, fmt.Errorf("reused fragment %s, expected flattened query", fragment.On)
+			return nil, errors.Errorf("reused fragment %s, expected flattened query", fragment.On)
 		}
 		seenFragments[fragment.On] = struct{}{}
 
 		// All fragments must be on concrete types
 		typ, ok := typ.Types[fragment.On]
 		if !ok {
-			return nil, fmt.Errorf("unexpected fragment on %s for typ %s", fragment.On, typ.Name)
+			return nil, errors.Errorf("unexpected fragment on %s for typ %s", fragment.On, typ.Name)
 		}
 
 		// Create a plan for all fragment types
@@ -411,7 +411,7 @@ func (e *Planner) plan(typIface graphql.Type, selectionSet *graphql.SelectionSet
 		return e.planUnion(typ, selectionSet, service)
 
 	default:
-		return nil, fmt.Errorf("bad typ %v", typIface)
+		return nil, errors.Errorf("bad typ %v", typIface)
 	}
 }
 
@@ -436,7 +436,7 @@ func (e *Planner) planRoot(query *graphql.Query) (*Plan, error) {
 	case mutationString:
 		schema = e.schema.Schema.Mutation
 	default:
-		return nil, fmt.Errorf("unknown query kind %s", query.Kind)
+		return nil, errors.Errorf("unknown query kind %s", query.Kind)
 	}
 
 	flattened, err := e.flattener.flatten(query.SelectionSet, schema)

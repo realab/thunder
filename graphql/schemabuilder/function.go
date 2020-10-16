@@ -2,9 +2,9 @@ package schemabuilder
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 	"github.com/samsarahq/go/oops"
 )
@@ -38,7 +38,7 @@ func (sb *schemaBuilder) buildFunctionAndFuncCtx(typ reflect.Type, m *method) (*
 	funcCtx := &funcContext{typ: typ}
 
 	if typ.Kind() == reflect.Ptr {
-		return nil, nil, fmt.Errorf("source-type of buildFunction cannot be a pointer (got: %v)", typ)
+		return nil, nil, errors.Errorf("source-type of buildFunction cannot be a pointer (got: %v)", typ)
 	}
 
 	callableFunc, err := funcCtx.getFuncVal(m)
@@ -59,7 +59,7 @@ func (sb *schemaBuilder) buildFunctionAndFuncCtx(typ reflect.Type, m *method) (*
 
 	// We have succeeded if no arguments remain.
 	if len(in) != 0 {
-		return nil, nil, fmt.Errorf("%s arguments should be [context][, [*]%s][, args][, selectionSet]", funcCtx.funcType, typ)
+		return nil, nil, errors.Errorf("%s arguments should be [context][, [*]%s][, args][, selectionSet]", funcCtx.funcType, typ)
 	}
 
 	// Parse return values. The first return value must be the actual value, and
@@ -203,7 +203,7 @@ type funcContext struct {
 func (funcCtx *funcContext) getFuncVal(m *method) (reflect.Value, error) {
 	fun := reflect.ValueOf(m.Fn)
 	if fun.Kind() != reflect.Func {
-		return fun, fmt.Errorf("fun must be func, not %s", fun)
+		return fun, errors.Errorf("fun must be func, not %s", fun)
 	}
 	funcCtx.funcType = fun.Type()
 	return fun, nil
@@ -252,7 +252,7 @@ func (funcCtx *funcContext) getArgParserAndTyp(sb *schemaBuilder, in []reflect.T
 	if len(in) > 0 && in[0] != selectionSetType {
 		var err error
 		if argParser, argType, err = sb.makeStructParser(in[0]); err != nil {
-			return nil, nil, in, fmt.Errorf("attempted to parse %s as arguments struct, but failed: %s", in[0].Name(), err.Error())
+			return nil, nil, in, errors.Errorf("attempted to parse %s as arguments struct, but failed: %s", in[0].Name(), err.Error())
 		}
 		in = in[1:]
 	}
@@ -291,12 +291,12 @@ func (funcCtx *funcContext) parseReturnSignature(m *method) (err error) {
 	}
 
 	if len(out) != 0 {
-		err = fmt.Errorf("%s return values should [result][, error]", funcCtx.funcType)
+		err = errors.Errorf("%s return values should [result][, error]", funcCtx.funcType)
 		return
 	}
 
 	if !funcCtx.hasRet && m.MarkedNonNullable {
-		err = fmt.Errorf("%s is marked non-nullable, but has no return value", funcCtx.funcType)
+		err = errors.Errorf("%s is marked non-nullable, but has no return value", funcCtx.funcType)
 		return
 	}
 	return
@@ -336,7 +336,7 @@ func (funcCtx *funcContext) argsTypeMap(argType graphql.Type) (map[string]graphq
 	if funcCtx.hasArgs {
 		inputObject, ok := argType.(*graphql.InputObject)
 		if !ok {
-			return nil, fmt.Errorf("%s's args should be an object", funcCtx.funcType)
+			return nil, errors.Errorf("%s's args should be an object", funcCtx.funcType)
 		}
 
 		for name, typ := range inputObject.InputFields {
@@ -401,7 +401,7 @@ func (funcCtx *funcContext) extractResultAndErr(out []reflect.Value, retType gra
 	if _, ok := retType.(*graphql.NonNull); ok {
 		resultValue := reflect.ValueOf(result)
 		if resultValue.Kind() == reflect.Ptr && resultValue.IsNil() {
-			return nil, fmt.Errorf("%s is marked non-nullable but returned a null value", funcCtx.funcType)
+			return nil, errors.Errorf("%s is marked non-nullable but returned a null value", funcCtx.funcType)
 		}
 	}
 

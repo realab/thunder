@@ -42,24 +42,24 @@ func TestErrorWithQuery(t *testing.T) {
 		},
 		{
 			title:         "ok original error with no args",
-			originalError: fmt.Errorf("original"),
+			originalError: errors.Errorf("original"),
 			clause:        "select * from mysql.users",
 		},
 		{
 			title:         "ok original error with no clause",
-			originalError: fmt.Errorf("original"),
+			originalError: errors.Errorf("original"),
 			args:          boolsInterfaceArr,
 		},
 		{
 			title:         "ok original error with clause and args",
-			originalError: fmt.Errorf("original"),
+			originalError: errors.Errorf("original"),
 			clause:        "some clause, foo, bar, baz",
 			args:          intsInterfaceArr,
 		},
 		{
 			title: "wrapped original error with clause and args",
 			originalError: &ErrorWithQuery{
-				err:    fmt.Errorf("innermost"),
+				err:    errors.Errorf("innermost"),
 				clause: "some inner clause",
 				args:   intsInterfaceArr,
 			},

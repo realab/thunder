@@ -17,11 +17,10 @@ package batch
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/concurrencylimiter"
 )
 
@@ -114,7 +113,7 @@ func safeInvoke(
 	defer func() {
 		if p := recover(); p != nil {
 			result = nil
-			err = fmt.Errorf("Func.Many panicked: %v", p)
+			err = errors.Errorf("Func.Many panicked: %v", p)
 		} else if err == nil && len(result) != len(args) {
 			result = nil
 			err = errors.New("Func.Many returned incorrect number of results")

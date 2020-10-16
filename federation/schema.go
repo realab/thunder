@@ -1,11 +1,11 @@
 package federation
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 	"github.com/samsarahq/go/oops"
 )
@@ -333,7 +333,7 @@ func lookupType(t *introspectionTypeRef, all map[string]graphql.Type) (*introspe
 	case "NON_NULL":
 		return lookupType(t.OfType, all)
 	default:
-		return nil, fmt.Errorf("unknown type kind %s", t.Kind)
+		return nil, errors.Errorf("unknown type kind %s", t.Kind)
 	}
 }
 
@@ -348,7 +348,7 @@ func lookupTypeRef(t *introspectionTypeRef, all map[string]graphql.Type) (graphq
 		// TODO: enforce type?
 		typ, ok := all[t.Name]
 		if !ok {
-			return nil, fmt.Errorf("type %s not found among top-level types", t.Name)
+			return nil, errors.Errorf("type %s not found among top-level types", t.Name)
 		}
 		return typ, nil
 
@@ -371,7 +371,7 @@ func lookupTypeRef(t *introspectionTypeRef, all map[string]graphql.Type) (graphq
 		}, nil
 
 	default:
-		return nil, fmt.Errorf("unknown type kind %s", t.Kind)
+		return nil, errors.Errorf("unknown type kind %s", t.Kind)
 	}
 }
 
@@ -383,17 +383,17 @@ func parseInputFields(source []introspectionInputField, all map[string]graphql.T
 		// Validate the inputType is valid
 		rawType, err := lookupType(field.Type, all)
 		if err != nil {
-			return nil, fmt.Errorf("type %s not found", rawType.Name)
+			return nil, errors.Errorf("type %s not found", rawType.Name)
 		}
 		switch rawType.Kind {
 		case "INPUT_OBJECT", "SCALAR", "ENUM":
 		default:
-			return nil, fmt.Errorf("input field %s has bad typ: %s", field.Name, rawType.Kind)
+			return nil, errors.Errorf("input field %s has bad typ: %s", field.Name, rawType.Kind)
 		}
 
 		inputType, err := lookupTypeRef(field.Type, all)
 		if err != nil {
-			return nil, fmt.Errorf("field %s has bad typ: %v", field.Name, err)
+			return nil, errors.Errorf("field %s has bad typ: %v", field.Name, err)
 		}
 		fields[field.Name] = inputType
 	}
@@ -408,7 +408,7 @@ func parseSchema(schema *IntrospectionQueryResult) (map[string]graphql.Type, err
 
 	for _, typ := range schema.Schema.Types {
 		if _, ok := all[typ.Name]; ok {
-			return nil, fmt.Errorf("duplicate type %s", typ.Name)
+			return nil, errors.Errorf("duplicate type %s", typ.Name)
 		}
 
 		switch typ.Kind {
@@ -438,7 +438,7 @@ func parseSchema(schema *IntrospectionQueryResult) (map[string]graphql.Type, err
 			}
 
 		default:
-			return nil, fmt.Errorf("unknown type kind %s", typ.Kind)
+			return nil, errors.Errorf("unknown type kind %s", typ.Kind)
 		}
 	}
 
@@ -450,13 +450,13 @@ func parseSchema(schema *IntrospectionQueryResult) (map[string]graphql.Type, err
 			for _, field := range typ.Fields {
 				fieldTyp, err := lookupTypeRef(field.Type, all)
 				if err != nil {
-					return nil, fmt.Errorf("typ %s field %s has bad typ: %v",
+					return nil, errors.Errorf("typ %s field %s has bad typ: %v",
 						typ.Name, field.Name, err)
 				}
 
 				parsed, err := parseInputFields(field.Args, all)
 				if err != nil {
-					return nil, fmt.Errorf("field %s input: %v", field.Name, err)
+					return nil, errors.Errorf("field %s input: %v", field.Name, err)
 				}
 
 				fields[field.Name] = &graphql.Field{
@@ -470,7 +470,7 @@ func parseSchema(schema *IntrospectionQueryResult) (map[string]graphql.Type, err
 		case "INPUT_OBJECT":
 			parsed, err := parseInputFields(typ.InputFields, all)
 			if err != nil {
-				return nil, fmt.Errorf("typ %s: %v", typ.Name, err)
+				return nil, errors.Errorf("typ %s: %v", typ.Name, err)
 			}
 
 			all[typ.Name].(*graphql.InputObject).InputFields = parsed
@@ -479,11 +479,11 @@ func parseSchema(schema *IntrospectionQueryResult) (map[string]graphql.Type, err
 			types := make(map[string]*graphql.Object)
 			for _, other := range typ.PossibleTypes {
 				if other.Kind != "OBJECT" {
-					return nil, fmt.Errorf("typ %s has possible typ not OBJECT: %v", typ.Name, other)
+					return nil, errors.Errorf("typ %s has possible typ not OBJECT: %v", typ.Name, other)
 				}
 				typ, ok := all[other.Name].(*graphql.Object)
 				if !ok {
-					return nil, fmt.Errorf("typ %s possible typ %s does not refer to obj", typ.Name, other.Name)
+					return nil, errors.Errorf("typ %s possible typ %s does not refer to obj", typ.Name, other.Name)
 				}
 				types[typ.Name] = typ
 			}
@@ -507,7 +507,7 @@ func parseSchema(schema *IntrospectionQueryResult) (map[string]graphql.Type, err
 			// pass
 
 		default:
-			return nil, fmt.Errorf("unknown type kind %s", typ.Kind)
+			return nil, errors.Errorf("unknown type kind %s", typ.Kind)
 		}
 	}
 

@@ -2,9 +2,9 @@ package schemabuilder
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/batch"
 	"github.com/realab/thunder/graphql"
 )
@@ -34,24 +34,24 @@ func (sb *schemaBuilder) buildBatchFunctionWithFallback(typ reflect.Type, m *met
 		fallbackFuncCtx.hasSelectionSet != batchFuncCtx.hasSelectionSet ||
 		fallbackFuncCtx.hasError != batchFuncCtx.hasError ||
 		fallbackFuncCtx.hasRet != batchFuncCtx.hasRet {
-		return nil, fmt.Errorf("batch and fallback function signatures did not match")
+		return nil, errors.Errorf("batch and fallback function signatures did not match")
 	}
 
 	if fallbackField.Type.String() != batchField.Type.String() {
-		return nil, fmt.Errorf("batch and fallback graphql return types did not match: Batch(%v) Fallback(%v)", batchField.Type, fallbackField.Type)
+		return nil, errors.Errorf("batch and fallback graphql return types did not match: Batch(%v) Fallback(%v)", batchField.Type, fallbackField.Type)
 	}
 
 	if len(fallbackField.Args) != len(batchField.Args) {
-		return nil, fmt.Errorf("batch and fallback arg type did not match: Batch(%v) Fallback(%v)", batchField.Args, fallbackField.Args)
+		return nil, errors.Errorf("batch and fallback arg type did not match: Batch(%v) Fallback(%v)", batchField.Args, fallbackField.Args)
 	}
 	for key, fallbackTyp := range fallbackField.Args {
 		if batchType, ok := batchField.Args[key]; !ok || fallbackTyp.String() != batchType.String() {
-			return nil, fmt.Errorf("batch and fallback func arg types did not match: Batch(%v) Fallback(%v)", batchType, fallbackTyp)
+			return nil, errors.Errorf("batch and fallback func arg types did not match: Batch(%v) Fallback(%v)", batchType, fallbackTyp)
 		}
 	}
 
 	if m.BatchArgs.ShouldUseFallbackFunc == nil {
-		return nil, fmt.Errorf("batch function requires fallback check function (got nil)")
+		return nil, errors.Errorf("batch function requires fallback check function (got nil)")
 	}
 
 	batchField.UseBatchFunc = m.BatchArgs.ShouldUseFallbackFunc
@@ -75,7 +75,7 @@ func (sb *schemaBuilder) buildBatchFunctionAndFuncCtx(typ reflect.Type, m *metho
 	funcCtx := &batchFuncContext{parentTyp: typ}
 
 	if typ.Kind() == reflect.Ptr {
-		return nil, nil, fmt.Errorf("source-type of buildBatchFunction cannot be a pointer (got: %v)", typ)
+		return nil, nil, errors.Errorf("source-type of buildBatchFunction cannot be a pointer (got: %v)", typ)
 	}
 
 	callableFunc, err := funcCtx.getFuncVal(m)
@@ -85,7 +85,7 @@ func (sb *schemaBuilder) buildBatchFunctionAndFuncCtx(typ reflect.Type, m *metho
 
 	in := funcCtx.getFuncInputTypes()
 	if len(in) == 0 {
-		return nil, nil, fmt.Errorf("batch Field funcs require at least one input field")
+		return nil, nil, errors.Errorf("batch Field funcs require at least one input field")
 	}
 
 	in = funcCtx.consumeContext(in)
@@ -101,7 +101,7 @@ func (sb *schemaBuilder) buildBatchFunctionAndFuncCtx(typ reflect.Type, m *metho
 
 	// We have succeeded if no arguments remain.
 	if len(in) != 0 {
-		return nil, nil, fmt.Errorf("%s arguments should be [context,]map[int][*]%s[, args][, selectionSet]", funcCtx.funcType, typ)
+		return nil, nil, errors.Errorf("%s arguments should be [context,]map[int][*]%s[, args][, selectionSet]", funcCtx.funcType, typ)
 	}
 
 	out := funcCtx.getFuncOutputTypes()
@@ -111,7 +111,7 @@ func (sb *schemaBuilder) buildBatchFunctionAndFuncCtx(typ reflect.Type, m *metho
 	}
 	out = funcCtx.consumeReturnError(out)
 	if len(out) > 0 {
-		return nil, nil, fmt.Errorf("%s return should be [map[int]<Type>][,error]", funcCtx.funcType)
+		return nil, nil, errors.Errorf("%s return should be [map[int]<Type>][,error]", funcCtx.funcType)
 	}
 
 	batchExecFunc := func(ctx context.Context, sources []interface{}, funcRawArgs interface{}, selectionSet *graphql.SelectionSet) ([]interface{}, error) {
@@ -156,7 +156,7 @@ type batchFuncContext struct {
 func (funcCtx *batchFuncContext) getFuncVal(m *method) (reflect.Value, error) {
 	fun := reflect.ValueOf(m.Fn)
 	if fun.Kind() != reflect.Func {
-		return fun, fmt.Errorf("fun must be func, not %s", fun)
+		return fun, errors.Errorf("fun must be func, not %s", fun)
 	}
 	funcCtx.funcType = fun.Type()
 	return fun, nil
@@ -189,7 +189,7 @@ func (funcCtx *batchFuncContext) consumeContext(in []reflect.Type) []reflect.Typ
 // error because the function is invalid.
 func (funcCtx *batchFuncContext) consumeRequiredSourceBatch(in []reflect.Type) ([]reflect.Type, error) {
 	if len(in) == 0 {
-		return nil, fmt.Errorf("requires batch source input parameter for func")
+		return nil, errors.Errorf("requires batch source input parameter for func")
 	}
 	inType := in[0]
 	in = in[1:]
@@ -198,7 +198,7 @@ func (funcCtx *batchFuncContext) consumeRequiredSourceBatch(in []reflect.Type) (
 	if inType.Kind() != reflect.Map ||
 		!isBatchIndexType(inType.Key()) ||
 		(inType.Elem() != parentPtrType && inType.Elem() != funcCtx.parentTyp) {
-		return nil, fmt.Errorf(
+		return nil, errors.Errorf(
 			"invalid source batch type, expected one of map[batch.Index]*%s or map[batch.Index]%s, but got %s",
 			funcCtx.parentTyp.String(),
 			funcCtx.parentTyp.String(),
@@ -222,11 +222,11 @@ func (funcCtx *batchFuncContext) consumeArgs(sb *schemaBuilder, in []reflect.Typ
 	in = in[1:]
 	argParser, argType, err := sb.makeStructParser(inType)
 	if err != nil {
-		return nil, nil, in, fmt.Errorf("attempted to parse %s as arguments struct, but failed: %s", inType.Name(), err.Error())
+		return nil, nil, in, errors.Errorf("attempted to parse %s as arguments struct, but failed: %s", inType.Name(), err.Error())
 	}
 	inputObject, ok := argType.(*graphql.InputObject)
 	if !ok {
-		return nil, nil, nil, fmt.Errorf("%s's args should be an object", funcCtx.funcType)
+		return nil, nil, nil, errors.Errorf("%s's args should be an object", funcCtx.funcType)
 	}
 	args := make(map[string]graphql.Type, len(inputObject.InputFields))
 	for name, typ := range inputObject.InputFields {
@@ -269,7 +269,7 @@ func (funcCtx *batchFuncContext) consumeReturnValue(m *method, sb *schemaBuilder
 	out = out[1:]
 	if outType.Kind() != reflect.Map ||
 		!isBatchIndexType(outType.Key()) {
-		return nil, nil, fmt.Errorf(
+		return nil, nil, errors.Errorf(
 			"invalid response batch type, expected map[batch.Index]<Type>, but got %s",
 			outType.String(),
 		)
@@ -377,7 +377,7 @@ func (funcCtx *batchFuncContext) extractResultsAndErr(out []reflect.Value, idxVa
 		res := resBatch.MapIndex(idxVal)
 		if !res.IsValid() || (res.Kind() == reflect.Ptr && res.IsNil()) {
 			if funcCtx.enforceNoNilResps {
-				return nil, fmt.Errorf("%s is marked non-nullable but returned a null value", funcCtx.funcType)
+				return nil, errors.Errorf("%s is marked non-nullable but returned a null value", funcCtx.funcType)
 			}
 			continue
 		}

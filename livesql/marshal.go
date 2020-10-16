@@ -2,11 +2,10 @@ package livesql
 
 import (
 	"database/sql/driver"
-	"errors"
-	"fmt"
 	"reflect"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/internal/fields"
 	"github.com/realab/thunder/sqlgen"
 	"github.com/realab/thunder/thunderpb"
@@ -37,7 +36,7 @@ func valueToField(value driver.Value) (*thunderpb.Field, error) {
 	case time.Time:
 		return &thunderpb.Field{Kind: thunderpb.FieldKind_Time, Value: &thunderpb.Field_Time{Time: &column}}, nil
 	default:
-		return nil, fmt.Errorf("unknown type %s", reflect.TypeOf(column))
+		return nil, errors.Errorf("unknown type %s", reflect.TypeOf(column))
 	}
 }
 
@@ -65,7 +64,7 @@ func FieldToValue(field *thunderpb.Field) (driver.Value, error) {
 		}
 		return *ptr, nil
 	default:
-		return nil, fmt.Errorf("unknown kind %s", field.Kind.String())
+		return nil, errors.Errorf("unknown kind %s", field.Kind.String())
 	}
 }
 
@@ -73,7 +72,7 @@ func FieldToValue(field *thunderpb.Field) (driver.Value, error) {
 func FilterToProto(schema *sqlgen.Schema, tableName string, filter sqlgen.Filter) (*thunderpb.SQLFilter, error) {
 	table, ok := schema.ByName[tableName]
 	if !ok {
-		return nil, fmt.Errorf("unknown table: %s", tableName)
+		return nil, errors.Errorf("unknown table: %s", tableName)
 	}
 
 	if filter == nil {
@@ -84,7 +83,7 @@ func FilterToProto(schema *sqlgen.Schema, tableName string, filter sqlgen.Filter
 	for col, val := range filter {
 		column, ok := table.ColumnsByName[col]
 		if !ok {
-			return nil, fmt.Errorf("unknown column %s", col)
+			return nil, errors.Errorf("unknown column %s", col)
 		}
 
 		val, err := column.Descriptor.Valuer(reflect.ValueOf(val)).Value()
@@ -105,7 +104,7 @@ func FilterToProto(schema *sqlgen.Schema, tableName string, filter sqlgen.Filter
 func FilterFromProto(schema *sqlgen.Schema, proto *thunderpb.SQLFilter) (string, sqlgen.Filter, error) {
 	table, ok := schema.ByName[proto.Table]
 	if !ok {
-		return "", nil, fmt.Errorf("unknown table: %s", proto.Table)
+		return "", nil, errors.Errorf("unknown table: %s", proto.Table)
 	}
 
 	scanners := table.Scanners.Get().([]interface{})
@@ -120,7 +119,7 @@ func FilterFromProto(schema *sqlgen.Schema, proto *thunderpb.SQLFilter) (string,
 
 		column, ok := table.ColumnsByName[col]
 		if !ok {
-			return "", nil, fmt.Errorf("unknown column %s", col)
+			return "", nil, errors.Errorf("unknown column %s", col)
 		}
 
 		if !column.Descriptor.Ptr && val == nil {

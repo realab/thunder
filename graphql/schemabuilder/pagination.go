@@ -3,12 +3,12 @@ package schemabuilder
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"reflect"
 	"sort"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/batch"
 	"github.com/realab/thunder/graphql"
 	"github.com/realab/thunder/internal/filter"
@@ -230,7 +230,7 @@ func (sb *schemaBuilder) constructEdgeType(typ reflect.Type) (graphql.Type, erro
 				return value.Node, nil
 			}
 
-			return nil, fmt.Errorf("error resolving node in edge")
+			return nil, errors.Errorf("error resolving node in edge")
 
 		},
 		Type:           &graphql.NonNull{Type: nodeType},
@@ -248,7 +248,7 @@ func (sb *schemaBuilder) constructEdgeType(typ reflect.Type) (graphql.Type, erro
 			if value, ok := source.(Edge); ok {
 				return value.Cursor, nil
 			}
-			return nil, fmt.Errorf("error resolving cursor in edge")
+			return nil, errors.Errorf("error resolving cursor in edge")
 		},
 		Type:           cursorType,
 		ParseArguments: nilParseArguments,
@@ -289,7 +289,7 @@ func (c *connectionContext) constructConnectionType(sb *schemaBuilder, typ refle
 			if value, ok := source.(Connection); ok {
 				return value.Edges, nil
 			}
-			return nil, fmt.Errorf("error resolving edges in connection")
+			return nil, errors.Errorf("error resolving edges in connection")
 		},
 		Type:           edgesSliceType,
 		ParseArguments: nilParseArguments,
@@ -427,7 +427,7 @@ func (c *connectionContext) applyBatchTextFilter(ctx context.Context, nodes []in
 			for i, text := range texts {
 				textString, ok := text.(string)
 				if !ok {
-					return fmt.Errorf("filter %s returned %T, must be a string", name, text)
+					return errors.Errorf("filter %s returned %T, must be a string", name, text)
 				}
 				if filter.MatchText(textString, matchStrings) {
 					m.Lock()
@@ -456,7 +456,7 @@ func (c *connectionContext) checkFilters(ctx context.Context, node interface{}, 
 		// Only strings are allowed for FilterText fields.
 		textString, ok := text.(string)
 		if !ok {
-			return keep, fmt.Errorf("filter %s returned %T, must be a string", name, text)
+			return keep, errors.Errorf("filter %s returned %T, must be a string", name, text)
 		}
 		if filter.MatchText(textString, matchStrings) {
 			keep = true
@@ -592,7 +592,7 @@ func (c *connectionContext) applySort(ctx context.Context, nodes []interface{}, 
 	sortField, ok := c.SortFields[*args.SortBy]
 	// If the field wasn't registered, it's an unknown sort field.
 	if !ok {
-		return nil, fmt.Errorf("unknown sort field %s", *args.SortBy)
+		return nil, errors.Errorf("unknown sort field %s", *args.SortBy)
 	}
 
 	// sortValues is the slice we'll be sorting (with the sorted values) in order to figure out node order.
@@ -825,7 +825,7 @@ func (c *connectionContext) checkSortFunctionTypes(name string, sortMethod *meth
 		// Check the return type of the fallback function.
 		sortableTyp := getFuncReturnType(sortMethod.BatchArgs.FallbackFunc)
 		if !supportedSort(sortableTyp) {
-			return fmt.Errorf(
+			return errors.Errorf(
 				"invalid sort field %s: unsupported return type %v, must be of kind int, uint, float or string",
 				name,
 				sortableTyp,
@@ -838,7 +838,7 @@ func (c *connectionContext) checkSortFunctionTypes(name string, sortMethod *meth
 		// Check the return type of the function.
 		sortableTyp := getFuncReturnType(sortMethod.Fn)
 		if !supportedSort(sortableTyp) {
-			return fmt.Errorf(
+			return errors.Errorf(
 				"invalid sort field %s: unsupported return type %v, must be of kind int, uint, float or string",
 				name,
 				sortableTyp,
@@ -849,7 +849,7 @@ func (c *connectionContext) checkSortFunctionTypes(name string, sortMethod *meth
 		// Check the return type of the batched function
 		sortableTyp := getFuncReturnType(sortMethod.Fn)
 		if sortableTyp.Kind() != reflect.Map || !supportedSort(sortableTyp.Elem()) {
-			return fmt.Errorf(
+			return errors.Errorf(
 				"invalid batch sort field %s: unsupported return type %v, must be of kind int, uint, float or string",
 				name,
 				sortableTyp,
@@ -884,7 +884,7 @@ func (c *connectionContext) consumeSorts(sb *schemaBuilder, m *method, typ refle
 		}
 
 		if field.Args != nil && len(field.Args) > 0 {
-			return fmt.Errorf("invalid sort field %s: sort fields can't take arguments", name)
+			return errors.Errorf("invalid sort field %s: sort fields can't take arguments", name)
 		}
 		c.SortFields[name] = field
 	}
@@ -896,19 +896,19 @@ func (c *connectionContext) checkFilterTextFunctionTypes(name string, filterMeth
 	if filterMethod.BatchArgs.FallbackFunc != nil {
 		batchFuncTyp := getFuncReturnType(filterMethod.BatchArgs.FallbackFunc)
 		if batchFuncTyp != typeOfString {
-			return fmt.Errorf("invalid text filter field %s: unsupported return type %v, must be a string", name, batchFuncTyp)
+			return errors.Errorf("invalid text filter field %s: unsupported return type %v, must be a string", name, batchFuncTyp)
 		}
 	}
 
 	if filterMethod.Batch == false {
 		batchFuncTyp := getFuncReturnType(filterMethod.Fn)
 		if batchFuncTyp != typeOfString {
-			return fmt.Errorf("invalid text filter field %s: unsupported return type %v, must be a string", name, batchFuncTyp)
+			return errors.Errorf("invalid text filter field %s: unsupported return type %v, must be a string", name, batchFuncTyp)
 		}
 	} else {
 		batchFuncTyp := getFuncReturnType(filterMethod.Fn)
 		if batchFuncTyp != typeofFilterMap {
-			return fmt.Errorf("invalid text filter field %s: unsupported return type %v, must be a map[batch.Index]string", name, batchFuncTyp)
+			return errors.Errorf("invalid text filter field %s: unsupported return type %v, must be a map[batch.Index]string", name, batchFuncTyp)
 		}
 	}
 	return nil
@@ -937,7 +937,7 @@ func (c *connectionContext) consumeTextFilters(sb *schemaBuilder, m *method, typ
 			return err
 		}
 		if field.Args != nil && len(field.Args) > 0 {
-			return fmt.Errorf("invalid text filter field %s: text filter fields can't take arguments", name)
+			return errors.Errorf("invalid text filter field %s: text filter fields can't take arguments", name)
 		}
 		c.FilterTextFields[name] = field
 	}
@@ -981,17 +981,17 @@ func (sb *schemaBuilder) getKeyFieldOnStruct(nodeType reflect.Type) (string, err
 		nodeObj = sb.objects[nodeType.Elem()]
 	}
 	if nodeObj == nil {
-		return "", fmt.Errorf("%s must be a struct and registered as an object along with its key", nodeType)
+		return "", errors.Errorf("%s must be a struct and registered as an object along with its key", nodeType)
 	}
 	nodeKey := reverseGraphqlFieldName(nodeObj.key)
 	if nodeKey == "" {
-		return nodeKey, fmt.Errorf("a key field must be registered for paginated objects")
+		return nodeKey, errors.Errorf("a key field must be registered for paginated objects")
 	}
 	if nodeType.Kind() == reflect.Ptr {
 		nodeType = nodeType.Elem()
 	}
 	if _, ok := nodeType.FieldByName(nodeKey); !ok {
-		return nodeKey, fmt.Errorf("field doesn't exist on struct")
+		return nodeKey, errors.Errorf("field doesn't exist on struct")
 	}
 
 	return nodeKey, nil
@@ -1016,7 +1016,7 @@ func (c *connectionContext) parsePaginatedReturnSignature(m *method) (err error)
 		c.ReturnsPageInfo = true
 		out = out[1:]
 		if len(out) == 0 || out[0] != reflect.TypeOf(PostProcessOptions{}) {
-			err = fmt.Errorf("%s returns a PaginationInfo not followed by a PaginationPostProcessOptions", c.funcType)
+			err = errors.Errorf("%s returns a PaginationInfo not followed by a PaginationPostProcessOptions", c.funcType)
 			return
 		}
 		out = out[1:]
@@ -1027,12 +1027,12 @@ func (c *connectionContext) parsePaginatedReturnSignature(m *method) (err error)
 		out = out[1:]
 	}
 	if len(out) != 0 {
-		err = fmt.Errorf("%s return values should [result][, error]", c.funcType)
+		err = errors.Errorf("%s return values should [result][, error]", c.funcType)
 		return
 	}
 
 	if !c.hasRet && m.MarkedNonNullable {
-		err = fmt.Errorf("%s is marked non-nullable, but has no return value", c.funcType)
+		err = errors.Errorf("%s is marked non-nullable, but has no return value", c.funcType)
 		return
 	}
 	return
@@ -1063,20 +1063,20 @@ func (sb *schemaBuilder) buildPaginatedFieldWithFallback(typ reflect.Type, m *me
 		fallbackFuncCtx.hasSelectionSet != manualPaginationFuncCtx.hasSelectionSet ||
 		fallbackFuncCtx.hasError != manualPaginationFuncCtx.hasError ||
 		fallbackFuncCtx.hasRet != manualPaginationFuncCtx.hasRet {
-		return nil, fmt.Errorf("manual pagination and fallback function signatures did not match")
+		return nil, errors.Errorf("manual pagination and fallback function signatures did not match")
 	}
 
 	if fallbackField.Type.String() != manualPaginationField.Type.String() {
-		return nil, fmt.Errorf("manual pagination and fallback graphql return types did not match: ManualPagination(%v) Fallback(%v)", manualPaginationField.Type, fallbackField.Type)
+		return nil, errors.Errorf("manual pagination and fallback graphql return types did not match: ManualPagination(%v) Fallback(%v)", manualPaginationField.Type, fallbackField.Type)
 	}
 
 	if len(fallbackField.Args) != len(manualPaginationField.Args) {
-		return nil, fmt.Errorf("manual pagination and fallback arg type did not match: ManualPagination(%v) Fallback(%v)", manualPaginationField.Args, fallbackField.Args)
+		return nil, errors.Errorf("manual pagination and fallback arg type did not match: ManualPagination(%v) Fallback(%v)", manualPaginationField.Args, fallbackField.Args)
 	}
 
 	for key, fallbackTyp := range fallbackField.Args {
 		if manualPaginationType, ok := manualPaginationField.Args[key]; !ok || fallbackTyp.String() != manualPaginationType.String() {
-			return nil, fmt.Errorf("manual pagination and fallback func arg types did not match: ManualPagination(%v) Fallback(%v)", manualPaginationType, fallbackTyp)
+			return nil, errors.Errorf("manual pagination and fallback func arg types did not match: ManualPagination(%v) Fallback(%v)", manualPaginationType, fallbackTyp)
 		}
 	}
 
@@ -1133,7 +1133,7 @@ func (sb *schemaBuilder) buildPaginatedFunctionAndFuncCtx(typ reflect.Type, m *m
 
 	// We have succeeded if no arguments remain.
 	if len(in) != 0 {
-		return nil, nil, fmt.Errorf("%s arguments should be [context][, [*]%s][, args][, selectionSet]", c.funcType, typ)
+		return nil, nil, errors.Errorf("%s arguments should be [context][, [*]%s][, args][, selectionSet]", c.funcType, typ)
 	}
 
 	// Parse return values. The first return value must be the actual value, and
@@ -1148,7 +1148,7 @@ func (sb *schemaBuilder) buildPaginatedFunctionAndFuncCtx(typ reflect.Type, m *m
 	// It's safe to assume that there's a return type since the method is marked as non-nullable
 	// when calling parseReturnSignature above.
 	if c.funcType.Out(0).Kind() != reflect.Slice {
-		return nil, nil, fmt.Errorf("paginated field func must return a slice type")
+		return nil, nil, errors.Errorf("paginated field func must return a slice type")
 	}
 	nodeType := c.funcType.Out(0).Elem()
 	retType, err := c.constructConnectionType(sb, nodeType)
@@ -1186,7 +1186,7 @@ func (sb *schemaBuilder) buildPaginatedFunctionAndFuncCtx(typ reflect.Type, m *m
 			if !c.IsExternallyManaged() {
 				val, ok := args.(ConnectionArgs)
 				if !ok {
-					return nil, fmt.Errorf("arguments should implement ConnectionArgs")
+					return nil, errors.Errorf("arguments should implement ConnectionArgs")
 				}
 				hasArgs = val.Args != nil
 				if hasArgs {
@@ -1309,7 +1309,7 @@ func (sb *schemaBuilder) buildEmbeddedPaginatedArgParser(typ reflect.Type) (*arg
 	}
 	for name, objField := range pagObj.InputFields {
 		if _, ok := argType.InputFields[name]; ok {
-			return nil, nil, fmt.Errorf("these arg names are restricted: First, After, Last and Before")
+			return nil, nil, errors.Errorf("these arg names are restricted: First, After, Last and Before")
 		}
 		argType.InputFields[name] = objField
 	}
@@ -1324,7 +1324,7 @@ func (sb *schemaBuilder) buildEmbeddedPaginatedArgParser(typ reflect.Type) (*arg
 				value := asMap[name]
 				fieldDest := dest.FieldByIndex(field.field.Index)
 				if err := field.parser.FromJSON(value, fieldDest); err != nil {
-					return fmt.Errorf("%s: %s", name, err)
+					return errors.Errorf("%s: %s", name, err)
 				}
 			}
 
@@ -1399,11 +1399,11 @@ func (sb *schemaBuilder) buildPaginatedArgParser(originalArgType reflect.Type) (
 	if originalArgType != nil {
 		nestedArgParser, nestedArgType, err = sb.makeStructParser(originalArgType)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to build args for paginated field")
+			return nil, nil, errors.Errorf("failed to build args for paginated field")
 		}
 		userInputObject, ok := nestedArgType.(*graphql.InputObject)
 		if !ok {
-			return nil, nil, fmt.Errorf("args should be an object")
+			return nil, nil, errors.Errorf("args should be an object")
 		}
 
 		for name, typ := range userInputObject.InputFields {
@@ -1422,7 +1422,7 @@ func (sb *schemaBuilder) buildPaginatedArgParser(originalArgType reflect.Type) (
 				value := asMap[name]
 				fieldDest := dest.FieldByIndex(field.field.Index)
 				if err := field.parser.FromJSON(value, fieldDest); err != nil {
-					return fmt.Errorf("%s: %s", name, err)
+					return errors.Errorf("%s: %s", name, err)
 				}
 			}
 
@@ -1437,7 +1437,7 @@ func (sb *schemaBuilder) buildPaginatedArgParser(originalArgType reflect.Type) (
 
 			if nestedArgParser == nil {
 				if len(nestedArgFields) != 0 {
-					return fmt.Errorf("error in parsing args")
+					return errors.Errorf("error in parsing args")
 				}
 				return nil
 			}

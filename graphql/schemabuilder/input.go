@@ -3,11 +3,10 @@ package schemabuilder
 import (
 	"encoding"
 	"encoding/base64"
-	"errors"
-	"fmt"
 	"reflect"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 	"github.com/realab/thunder/internal"
 )
@@ -95,7 +94,7 @@ func (sb *schemaBuilder) makeStructParser(typ reflect.Type) (*argParser, graphql
 				value := asMap[name]
 				fieldDest := dest.FieldByIndex(field.field.Index)
 				if err := field.parser.FromJSON(value, fieldDest); err != nil {
-					return fmt.Errorf("%s: %s", name, err)
+					return errors.Errorf("%s: %s", name, err)
 				}
 			}
 
@@ -124,7 +123,7 @@ func (sb *schemaBuilder) getStructObjectFields(typ reflect.Type) (*graphql.Input
 	}
 
 	if typ.Kind() != reflect.Struct {
-		return nil, nil, fmt.Errorf("expected struct but received type %s", typ.Kind())
+		return nil, nil, errors.Errorf("expected struct but received type %s", typ.Kind())
 	}
 
 	// Cache type information ahead of time to catch self-reference
@@ -133,19 +132,19 @@ func (sb *schemaBuilder) getStructObjectFields(typ reflect.Type) (*graphql.Input
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
 		if field.Anonymous {
-			return nil, nil, fmt.Errorf("bad arg type %s: anonymous fields not supported", typ)
+			return nil, nil, errors.Errorf("bad arg type %s: anonymous fields not supported", typ)
 		}
 
 		fieldInfo, err := parseGraphQLFieldInfo(field)
 		if err != nil {
-			return nil, nil, fmt.Errorf("bad type %s: %s", typ, err.Error())
+			return nil, nil, errors.Errorf("bad type %s: %s", typ, err.Error())
 		}
 		if fieldInfo.Skipped {
 			continue
 		}
 
 		if _, ok := fields[fieldInfo.Name]; ok {
-			return nil, nil, fmt.Errorf("bad arg type %s: duplicate field %s", typ, fieldInfo.Name)
+			return nil, nil, errors.Errorf("bad arg type %s: duplicate field %s", typ, fieldInfo.Name)
 		}
 		parser, fieldArgTyp, err := sb.makeArgParser(field.Type)
 		if err != nil {
@@ -206,13 +205,13 @@ func (sb *schemaBuilder) makeArgParserInner(typ reflect.Type) (*argParser, graph
 			return nil, nil, err
 		}
 		if argType.(*graphql.InputObject).Name == "" {
-			return nil, nil, fmt.Errorf("bad type %s: should have a name", typ)
+			return nil, nil, errors.Errorf("bad type %s: should have a name", typ)
 		}
 		return parser, argType, nil
 	case reflect.Slice:
 		return sb.makeSliceParser(typ)
 	default:
-		return nil, nil, fmt.Errorf("bad arg type %s: should be struct, scalar, pointer, or a slice", typ)
+		return nil, nil, errors.Errorf("bad arg type %s: should be struct, scalar, pointer, or a slice", typ)
 	}
 }
 
@@ -270,7 +269,7 @@ func (sb *schemaBuilder) getEnumArgParser(typ reflect.Type) (*argParser, graphql
 		}
 		val, ok := sb.enumMappings[typ].Map[asString]
 		if !ok {
-			return fmt.Errorf("unknown enum value %v", asString)
+			return errors.Errorf("unknown enum value %v", asString)
 		}
 		dest.Set(reflect.ValueOf(val).Convert(dest.Type()))
 		return nil

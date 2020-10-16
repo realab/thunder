@@ -11,6 +11,7 @@ import (
 	"github.com/samsarahq/go/oops"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
 	"github.com/realab/thunder/graphql/introspection"
 )
@@ -244,7 +245,7 @@ func (e *Executor) runOnService(ctx context.Context, service string, typName str
 		federatedName := fmt.Sprintf("%s_%s", service, typName)
 		r, ok := result[federatedName].([]interface{})
 		if !ok {
-			return nil, nil, fmt.Errorf("root did not have a federation map, got %v", res)
+			return nil, nil, errors.Errorf("root did not have a federation map, got %v", res)
 		}
 		return r, response.Metadata, nil
 
@@ -266,11 +267,11 @@ func (pathTargets *pathSubqueryMetadata) extractKeys(node interface{}, path []Pa
 	if len(path) == 0 {
 		obj, ok := node.(map[string]interface{})
 		if !ok {
-			return fmt.Errorf("not an object: %v", obj)
+			return errors.Errorf("not an object: %v", obj)
 		}
 		key, ok := obj[federationField]
 		if !ok {
-			return fmt.Errorf("missing _federation: %v", obj)
+			return errors.Errorf("missing _federation: %v", obj)
 		}
 		// Add a pointer to the object for where the results from
 		// the subquery will be added into the final result
@@ -292,23 +293,23 @@ func (pathTargets *pathSubqueryMetadata) extractKeys(node interface{}, path []Pa
 	case KindField:
 		next, ok := obj[step.Name]
 		if !ok {
-			return fmt.Errorf("does not have key %s", step.Name)
+			return errors.Errorf("does not have key %s", step.Name)
 		}
 		if err := pathTargets.extractKeys(next, path[1:]); err != nil {
-			return fmt.Errorf("elem %s: %v", next, err)
+			return errors.Errorf("elem %s: %v", next, err)
 		}
 	case KindType:
 		typ, ok := obj["__typename"].(string)
 		if !ok {
-			return fmt.Errorf("does not have string key __typename")
+			return errors.Errorf("does not have string key __typename")
 		}
 		if typ == step.Name {
 			if err := pathTargets.extractKeys(obj, path[1:]); err != nil {
-				return fmt.Errorf("typ %s: %v", typ, err)
+				return errors.Errorf("typ %s: %v", typ, err)
 			}
 		}
 	default:
-		return fmt.Errorf("unsupported step type name: %s kind: %v", step.Name, step.Kind)
+		return errors.Errorf("unsupported step type name: %s kind: %v", step.Name, step.Kind)
 	}
 
 	return nil
@@ -353,7 +354,7 @@ func (e *Executor) execute(ctx context.Context, p *Plan, keys []interface{}, met
 			subPlanMetaData.optionalResponseMetatda = nil
 		} else {
 			if err := subPlanMetaData.extractKeys(res, subPlan.Path); err != nil {
-				return nil, nil, fmt.Errorf("failed to extract keys %v: %v", subPlan.Path, err)
+				return nil, nil, errors.Errorf("failed to extract keys %v: %v", subPlan.Path, err)
 			}
 		}
 
@@ -366,7 +367,7 @@ func (e *Executor) execute(ctx context.Context, p *Plan, keys []interface{}, met
 			optionalRespMetadata = append(optionalRespMetadata, subQueryRespMetadata...)
 
 			if len(executionResults) != len(subPlanMetaData.results) {
-				return fmt.Errorf("got %d results for %d targets", len(executionResults), len(subPlanMetaData.results))
+				return errors.Errorf("got %d results for %d targets", len(executionResults), len(subPlanMetaData.results))
 			}
 
 			// Acquire mutex lock before modifying results
@@ -375,7 +376,7 @@ func (e *Executor) execute(ctx context.Context, p *Plan, keys []interface{}, met
 			for i, result := range subPlanMetaData.results {
 				executionResult, ok := executionResults[i].(map[string]interface{})
 				if !ok {
-					return fmt.Errorf("result is not an object: %v", executionResult)
+					return errors.Errorf("result is not an object: %v", executionResult)
 				}
 
 				for k, v := range executionResult {

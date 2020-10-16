@@ -2,11 +2,10 @@ package graphql
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"reflect"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/realab/thunder/reactive"
 )
 
@@ -113,7 +112,7 @@ type Executor struct {
 func (e *Executor) Execute(ctx context.Context, typ Type, source interface{}, query *Query) (interface{}, error) {
 	queryObject, ok := typ.(*Object)
 	if !ok {
-		return nil, fmt.Errorf("expected query or mutation object for execution, got: %s", typ.String())
+		return nil, errors.Errorf("expected query or mutation object for execution, got: %s", typ.String())
 	}
 
 	topLevelSelections, err := Flatten(query.SelectionSet)
@@ -133,7 +132,7 @@ func (e *Executor) Execute(ctx context.Context, typ Type, source interface{}, qu
 		}
 		field, ok := queryObject.Fields[selection.Name]
 		if !ok {
-			return nil, fmt.Errorf("invalid top-level selection %q", selection.Name)
+			return nil, errors.Errorf("invalid top-level selection %q", selection.Name)
 		}
 
 		writer := newOutputNode(topLevelRespWriter, selection.Alias)
@@ -385,7 +384,7 @@ func resolveUnionBatch(ctx context.Context, sources []interface{}, typ *Union, s
 				continue
 			}
 			if srcType != "" {
-				return nil, fmt.Errorf("union type field should only return one value, but received: %s %s", srcType, typString)
+				return nil, errors.Errorf("union type field should only return one value, but received: %s %s", srcType, typString)
 			}
 			srcType = typString
 			sourcesByType[srcType] = append(sourcesByType[srcType], inner.Interface())

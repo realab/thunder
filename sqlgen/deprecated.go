@@ -2,7 +2,8 @@ package sqlgen
 
 import (
 	"database/sql/driver"
-	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 type NullBytes struct {
@@ -28,7 +29,7 @@ func (b *NullBytes) Scan(value interface{}) error {
 		b.Bytes = []byte(value)
 		b.Valid = true
 	default:
-		return fmt.Errorf("cannot convert %v to bytes", value)
+		return errors.Errorf("cannot convert %v to bytes", value)
 	}
 	return nil
 }

@@ -1,9 +1,10 @@
 package merge
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 const indicesReorderedKey = "$"
@@ -92,7 +93,7 @@ func mergeArray(prev []interface{}, diff map[string]interface{}) ([]interface{},
 
 		index, err := strconv.Atoi(k)
 		if err != nil {
-			return nil, fmt.Errorf("mergeArray: key cannot be converted to an integer. key: %s", k)
+			return nil, errors.Errorf("mergeArray: key cannot be converted to an integer. key: %s", k)
 		}
 
 		v := new[index]
@@ -118,7 +119,7 @@ func mergeReplaced(diff interface{}) (interface{}, error) {
 		// Extract all other values.
 		d, ok := diff.([]interface{})
 		if !ok || len(d) == 0 {
-			return nil, fmt.Errorf("mergeReplaced: diff is not an array of length 1: %v", diff)
+			return nil, errors.Errorf("mergeReplaced: diff is not an array of length 1: %v", diff)
 		}
 		return d[0], nil
 	}
@@ -136,7 +137,7 @@ func isRemoved(delta interface{}) bool {
 func uncompressIndices(indices interface{}) ([]int, error) {
 	compressedIndices, ok := indices.([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("uncompressIndices: indices is not an array: %v", indices)
+		return nil, errors.Errorf("uncompressIndices: indices is not an array: %v", indices)
 	}
 
 	var uncompressedIndices []int
@@ -144,17 +145,17 @@ func uncompressIndices(indices interface{}) ([]int, error) {
 		switch index := index.(type) {
 		case []interface{}:
 			if len(index) != 2 {
-				return nil, fmt.Errorf("uncompressIndices: unexpected index array length: %v", index)
+				return nil, errors.Errorf("uncompressIndices: unexpected index array length: %v", index)
 			}
 
 			start, ok := index[0].(float64)
 			if !ok {
-				return nil, fmt.Errorf("uncompressIndices: index array[0] is not a number: %v", index[0])
+				return nil, errors.Errorf("uncompressIndices: index array[0] is not a number: %v", index[0])
 			}
 
 			end, ok := index[1].(float64)
 			if !ok {
-				return nil, fmt.Errorf("uncompressIndices: index array[1] is not a number: %v", index[1])
+				return nil, errors.Errorf("uncompressIndices: index array[1] is not a number: %v", index[1])
 			}
 
 			for i := start; i <= end; i++ {
@@ -163,7 +164,7 @@ func uncompressIndices(indices interface{}) ([]int, error) {
 		case float64:
 			uncompressedIndices = append(uncompressedIndices, int(index))
 		default:
-			return nil, fmt.Errorf("uncompressIndices: unexpected index type: %v", reflect.TypeOf(index))
+			return nil, errors.Errorf("uncompressIndices: unexpected index type: %v", reflect.TypeOf(index))
 		}
 	}
 	return uncompressedIndices, nil
