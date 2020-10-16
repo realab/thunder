@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/realab/thunder/graphql"
 	"github.com/samsarahq/go/oops"
-	"github.com/samsarahq/thunder/graphql"
 )
 
 // serviceSchemas holds all schemas for all of versions of

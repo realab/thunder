@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/realab/thunder/graphql"
+	"github.com/realab/thunder/graphql/introspection"
+	"github.com/realab/thunder/reactive"
+	"github.com/realab/thunder/thunderpb"
 	"github.com/samsarahq/go/oops"
-	"github.com/samsarahq/thunder/graphql"
-	"github.com/samsarahq/thunder/graphql/introspection"
-	"github.com/samsarahq/thunder/reactive"
-	"github.com/samsarahq/thunder/thunderpb"
 )
 
 // DirectExecutorClient is used to execute directly on any of the graphql servers

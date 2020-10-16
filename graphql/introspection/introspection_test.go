@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/realab/thunder/graphql/introspection"
+	"github.com/realab/thunder/graphql/schemabuilder"
 	"github.com/samsarahq/go/snapshotter"
-	"github.com/samsarahq/thunder/graphql/introspection"
-	"github.com/samsarahq/thunder/graphql/schemabuilder"
 	"github.com/stretchr/testify/require"
 )
 

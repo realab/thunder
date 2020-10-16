@@ -8,9 +8,9 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/samsarahq/thunder/batch"
-	"github.com/samsarahq/thunder/internal/testfixtures"
-	"github.com/samsarahq/thunder/sqlgen"
+	"github.com/realab/thunder/batch"
+	"github.com/realab/thunder/internal/testfixtures"
+	"github.com/realab/thunder/sqlgen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
