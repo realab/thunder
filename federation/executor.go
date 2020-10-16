@@ -11,8 +11,8 @@ import (
 	"github.com/samsarahq/go/oops"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/samsarahq/thunder/graphql"
-	"github.com/samsarahq/thunder/graphql/introspection"
+	"github.com/realab/thunder/graphql"
+	"github.com/realab/thunder/graphql/introspection"
 )
 
 const keyField = "__key"

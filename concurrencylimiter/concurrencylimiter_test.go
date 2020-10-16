@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samsarahq/thunder/concurrencylimiter"
+	"github.com/realab/thunder/concurrencylimiter"
 	"github.com/stretchr/testify/assert"
 )
 

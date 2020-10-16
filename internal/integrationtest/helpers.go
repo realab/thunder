@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/samsarahq/thunder/internal/testfixtures"
-	"github.com/samsarahq/thunder/livesql"
-	"github.com/samsarahq/thunder/sqlgen"
+	"github.com/realab/thunder/internal/testfixtures"
+	"github.com/realab/thunder/livesql"
+	"github.com/realab/thunder/sqlgen"
 	"github.com/stretchr/testify/require"
 )
 

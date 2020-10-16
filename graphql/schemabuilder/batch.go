@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/samsarahq/thunder/batch"
-	"github.com/samsarahq/thunder/graphql"
+	"github.com/realab/thunder/batch"
+	"github.com/realab/thunder/graphql"
 )
 
 // buildBatchFunction corresponds to buildFunction for a batchFieldFunc
