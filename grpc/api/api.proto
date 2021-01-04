@@ -1,0 +1,16 @@
+syntax = "proto3";
+package thunder.grpc.api;
+option go_package = "api";
+
+service ThunderServer {
+  rpc GetAuthor(GetAuthorReq) returns (Author);
+}
+
+message GetAuthorReq {
+  int64 id = 1;
+}
+
+message Author {
+  int64 id = 1;
+  string name = 2;
+}

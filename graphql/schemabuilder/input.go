@@ -3,6 +3,8 @@ package schemabuilder
 import (
 	"encoding"
 	"encoding/base64"
+	"fmt"
+	"os"
 	"reflect"
 	"time"
 
@@ -140,6 +142,10 @@ func (sb *schemaBuilder) getStructObjectFields(typ reflect.Type) (*graphql.Input
 			return nil, nil, errors.Errorf("bad type %s: %s", typ, err.Error())
 		}
 		if fieldInfo.Skipped {
+			continue
+		}
+		if field.Type.Name() == "" {
+			fmt.Fprintf(os.Stderr, "Ignore none name field: %s with type %s\n", fieldInfo.Name, field.Type)
 			continue
 		}
 

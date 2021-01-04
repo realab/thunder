@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/realab/thunder/graphql"
-	"github.com/samsarahq/go/oops"
 )
 
 // buildFunction takes the reflect type of an object and a method attached to
@@ -26,7 +25,7 @@ func (sb *schemaBuilder) buildFunction(typ reflect.Type, m *method) (*graphql.Fi
 		if typ.Name() == "federation" {
 			return sb.buildShadowObjectFederationFunction(typ, m)
 		} else {
-			return nil, oops.Errorf("ShadowType %s is on %s insetad of the federation object type", m.ShadowObjectType.Name(), typ.Name())
+			return nil, errors.Errorf("ShadowType %s is on %s insetad of the federation object type", m.ShadowObjectType.Name(), typ.Name())
 		}
 	}
 
@@ -110,7 +109,7 @@ func (sb *schemaBuilder) buildFederatedFunction(typ reflect.Type, m *method) (*g
 	var argParser *argParser
 	returnType, err := sb.getType(m.RootObjectType)
 	if err != nil {
-		return nil, oops.Wrapf(err, "Invalid return type")
+		return nil, errors.Wrapf(err, "Invalid return type")
 	}
 	field := &graphql.Field{
 		Resolve: func(ctx context.Context, source, funcRawArgs interface{}, selectionSet *graphql.SelectionSet) (interface{}, error) {
@@ -155,18 +154,18 @@ func (sb *schemaBuilder) buildShadowObjectFederationFunction(typ reflect.Type, m
 
 	argParser, argType, _, err := funcCtx.getArgParserAndTyp(sb, in)
 	if err != nil {
-		return nil, oops.Wrapf(err, "Error parsing args for shadow object field")
+		return nil, errors.Wrapf(err, "Error parsing args for shadow object field")
 	}
 	funcCtx.hasArgs = argParser != nil
 	args, err := funcCtx.argsTypeMap(argType)
 	if err != nil {
-		return nil, oops.Wrapf(err, "Error parsing args map for shadow object field")
+		return nil, errors.Wrapf(err, "Error parsing args map for shadow object field")
 	}
 
 	// Return type is a nonnullable list of the shadow object type
 	returnType, err := sb.getType(m.ShadowObjectType)
 	if err != nil {
-		return nil, oops.Wrapf(err, "Invalid return type")
+		return nil, errors.Wrapf(err, "Invalid return type")
 	}
 	rType := &graphql.NonNull{Type: &graphql.List{Type: returnType}}
 	field := &graphql.Field{
@@ -252,7 +251,7 @@ func (funcCtx *funcContext) getArgParserAndTyp(sb *schemaBuilder, in []reflect.T
 	if len(in) > 0 && in[0] != selectionSetType {
 		var err error
 		if argParser, argType, err = sb.makeStructParser(in[0]); err != nil {
-			return nil, nil, in, errors.Errorf("attempted to parse %s as arguments struct, but failed: %s", in[0].Name(), err.Error())
+			return nil, nil, in, errors.Errorf("attempted to parse %s as arguments struct, but failed: %+v", in[0].Name(), err)
 		}
 		in = in[1:]
 	}

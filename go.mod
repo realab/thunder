@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-sql-driver/mysql v1.3.1-0.20170715192408-3955978caca4
-	github.com/gogo/protobuf v1.1.2-0.20180914054005-e14cafb6a2c2
+	github.com/gogo/protobuf v1.3.1
 	github.com/gorilla/websocket v1.0.1-0.20161018003955-8003df83eef3
 	github.com/graphql-go/graphql v0.4.19-0.20160928141709-8c317402d1b7
 	github.com/juju/testing v0.0.0-20200923013621-75df6121fbb0 // indirect
@@ -20,8 +20,8 @@ require (
 	github.com/satori/go.uuid v0.0.0-20160218235746-e673fdd4dea8
 	github.com/siddontang/go v0.0.0-20161005110831-1e9ce2a5ac40 // indirect
 	github.com/siddontang/go-mysql v0.0.0-20160925014134-d8e777f00cdb
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	google.golang.org/grpc v1.33.0
+	google.golang.org/grpc v1.34.0
 )

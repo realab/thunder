@@ -2,6 +2,8 @@ package schemabuilder
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"reflect"
 	"sort"
 
@@ -62,6 +64,10 @@ func (sb *schemaBuilder) buildStruct(typ reflect.Type) error {
 			return errors.Errorf("bad type %s: %s", typ, fieldInfo.Name)
 		}
 		if fieldInfo.Skipped {
+			continue
+		}
+		if field.Type.Name() == "" {
+			fmt.Fprintf(os.Stderr, "Ignore none name field: %s with type %s\n", fieldInfo.Name, typ)
 			continue
 		}
 
@@ -130,7 +136,7 @@ func (sb *schemaBuilder) buildStruct(typ reflect.Type) error {
 
 		built, err := sb.buildFunction(typ, method)
 		if err != nil {
-			return errors.Errorf("bad method %s on type %s: %s", name, typ, err)
+			return errors.Errorf("bad method %s on type %s: %+v", name, typ, err)
 		}
 		object.Fields[name] = built
 	}
